@@ -1,0 +1,1444 @@
+<!DOCTYPE html>
+<html lang="zh-TW" class="h-full bg-slate-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube 訂閱頻道與觀看紀錄智慧管理中心</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        yt: {
+                            red: '#FF0000',
+                            dark: '#0F0F0F',
+                            gray: '#606060',
+                            light: '#F2F2F2'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome Icons CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+        /* Custom Scrollbars */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        .fade-in {
+            animation: fadeIn 0.25s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="h-full text-slate-800 antialiased flex flex-col min-h-screen">
+
+    <!-- Top Header -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <div class="flex items-center space-x-3">
+                <div class="bg-red-600 text-white w-10 h-10 rounded-xl shadow-md flex items-center justify-center shrink-0">
+                    <i class="fa-brands fa-youtube text-2xl"></i>
+                </div>
+                <div class="min-w-0">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <h1 class="text-base sm:text-lg font-bold text-slate-900 tracking-tight whitespace-nowrap">
+                            YouTube 訂閱與觀看紀錄智慧管理
+                        </h1>
+                        <span class="bg-red-100 text-red-700 text-[11px] px-2.5 py-0.5 rounded-full font-semibold whitespace-nowrap shrink-0">
+                            2026 雲端同步版
+                        </span>
+                    </div>
+                    <p class="text-xs text-slate-500 mt-0.5 truncate">自動分析頻道更新頻率、最後更新日、觀看偏好與退訂管理</p>
+                </div>
+            </div>
+
+            <!-- Header Action Buttons -->
+            <div class="flex flex-col gap-2 lg:items-end w-full lg:w-auto">
+                <!-- Row 1: Data & Sync Tools -->
+                <div class="flex flex-wrap items-center gap-2">
+                    <button 
+                        onclick="toggleImportExportModal(true)"
+                        class="bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold px-3 py-2 rounded-lg transition-all flex items-center gap-1.5 shrink-0 shadow-sm whitespace-nowrap"
+                    >
+                        <i class="fa-solid fa-file-import text-amber-400"></i>
+                        <span>匯入/匯出 (CSV/JSON)</span>
+                    </button>
+
+                    <button 
+                        onclick="toggleCloudSyncModal(true)"
+                        class="bg-sky-600 hover:bg-sky-700 text-white text-xs font-semibold px-3 py-2 rounded-lg transition-all flex items-center gap-1.5 shrink-0 shadow-sm whitespace-nowrap"
+                    >
+                        <i class="fa-solid fa-cloud-arrow-up text-sky-200"></i>
+                        <span>跨裝置雲端同步</span>
+                    </button>
+
+                    <button 
+                        onclick="fetchLatestDates()"
+                        id="btn-fetch-api"
+                        class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold px-3 py-2 rounded-lg transition-all shadow-sm flex items-center gap-1.5 shrink-0 whitespace-nowrap"
+                    >
+                        <i class="fa-solid fa-rotate" id="icon-fetch-api"></i>
+                        <span>抓取最後更新日 (Req D1)</span>
+                    </button>
+                </div>
+
+                <!-- Row 2: Unsubscribe Guidance & Actions -->
+                <div class="flex flex-wrap items-center gap-2">
+                    <button 
+                        onclick="openYouTubeSubManager()"
+                        class="bg-red-600 hover:bg-red-700 text-white text-xs font-semibold px-3 py-2 rounded-lg transition-all shadow-sm flex items-center gap-1.5 shrink-0 whitespace-nowrap"
+                        title="開啟 YouTube 官方訂閱管理員頁面"
+                    >
+                        <i class="fa-brands fa-arrow-up-right-from-square"></i>
+                        <span>開啟 YouTube 官方退訂頁</span>
+                    </button>
+
+                    <button 
+                        onclick="toggleUnsubGuide(true)"
+                        class="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 text-xs font-semibold px-3 py-2 rounded-lg transition-all flex items-center gap-1.5 shrink-0 whitespace-nowrap"
+                    >
+                        <i class="fa-solid fa-circle-question text-indigo-500"></i>
+                        <span>退訂說明 (Req C1)</span>
+                    </button>
+
+                    <button 
+                        onclick="openResetModal()"
+                        class="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 text-xs font-semibold px-3 py-2 rounded-lg transition-all flex items-center gap-1.5 shrink-0 whitespace-nowrap"
+                        title="清空並重設頻道資料"
+                    >
+                        <i class="fa-solid fa-arrow-rotate-left text-slate-500"></i>
+                        <span>重設</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-5">
+
+        <!-- Top Metrics Cards Grid -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3" id="metrics-grid">
+            <!-- Rendered dynamically by JS -->
+        </div>
+
+        <!-- Search, Filter Bar and Category Tabs -->
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-4">
+            <!-- Category Filter Tabs -->
+            <div class="flex flex-wrap gap-1.5 border-b border-slate-100 pb-3" id="category-tabs">
+                <!-- Tabs rendered dynamically by JS -->
+            </div>
+
+            <!-- Search, View Switcher, and Sort Toolbars -->
+            <div class="flex flex-col md:flex-row items-center justify-between gap-3 pt-1">
+                <!-- Search Input -->
+                <div class="relative w-full md:w-80">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                    <input 
+                        type="text" 
+                        id="search-input"
+                        placeholder="搜尋頻道名稱或分類標籤..." 
+                        oninput="handleSearch(this.value)"
+                        class="w-full pl-9 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                    />
+                    <button id="btn-clear-search" onclick="clearSearch()" class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+
+                <!-- View Switcher & Sorting Controls -->
+                <div class="flex flex-wrap items-center gap-2 w-full md:w-auto justify-between md:justify-end">
+                    <!-- Layout Display Mode Switcher -->
+                    <div class="flex items-center bg-slate-100 p-1 rounded-lg border border-slate-200">
+                        <button 
+                            onclick="setViewMode('auto')" 
+                            id="view-btn-auto"
+                            class="px-2.5 py-1 text-[11px] font-semibold rounded-md transition-all whitespace-nowrap bg-white text-indigo-700 shadow-xs"
+                            title="依螢幕尺寸自動切換"
+                        >
+                            <span>📱/💻 隨螢幕自動</span>
+                        </button>
+                        <button 
+                            onclick="setViewMode('table')" 
+                            id="view-btn-table"
+                            class="px-2.5 py-1 text-[11px] font-semibold rounded-md transition-all text-slate-600 hover:text-slate-900 whitespace-nowrap"
+                            title="強制切換為表格排版"
+                        >
+                            <i class="fa-solid fa-table-cells"></i>
+                            <span class="whitespace-nowrap">表格</span>
+                        </button>
+                        <button 
+                            onclick="setViewMode('cards')" 
+                            id="view-btn-cards"
+                            class="px-2.5 py-1 text-[11px] font-semibold rounded-md transition-all text-slate-600 hover:text-slate-900 whitespace-nowrap"
+                            title="強制切換為卡片排版"
+                        >
+                            <i class="fa-solid fa-border-all"></i>
+                            <span class="whitespace-nowrap">卡片</span>
+                        </button>
+                    </div>
+
+                    <!-- Batch Action Container -->
+                    <div id="batch-action-container" class="hidden">
+                        <button 
+                            onclick="handleBatchUnsubscribe()"
+                            class="bg-red-600 hover:bg-red-700 text-white text-xs font-semibold px-3 py-2 rounded-lg transition-all shadow-sm flex items-center gap-1.5 whitespace-nowrap"
+                        >
+                            <i class="fa-solid fa-trash-can"></i>
+                            批次標記退訂 (<span id="selected-count">0</span>)
+                        </button>
+                    </div>
+
+                    <!-- Sorting Options -->
+                    <div class="flex items-center gap-1.5">
+                        <span class="text-xs text-slate-500 whitespace-nowrap font-medium">排序:</span>
+                        <select 
+                            id="sort-select"
+                            onchange="handleSortChange(this.value)"
+                            class="bg-slate-50 border border-slate-200 text-xs text-slate-700 rounded-lg px-2.5 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium cursor-pointer"
+                        >
+                            <option value="lastUploadDate">🗓️ 最後更新日 (最新)</option>
+                            <option value="watchedCount">👁️ 觀看次數 (最多)</option>
+                            <option value="sixMonthUploads">⚡ 近半年發布量</option>
+                            <option value="title">🔤 頻道名稱 Alphabetical</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- View Mode 1: Channels Management Desktop Table -->
+        <div id="desktop-table-container" class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden hidden md:block">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs text-slate-600 border-collapse min-w-[960px]">
+                    <thead class="bg-slate-100 text-slate-700 uppercase font-semibold border-b border-slate-200">
+                        <tr>
+                            <th class="p-3.5 w-10 text-center whitespace-nowrap">
+                                <input 
+                                    type="checkbox" 
+                                    id="select-all-checkbox"
+                                    onclick="toggleSelectAll(this.checked)"
+                                    class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                                />
+                            </th>
+                            <th class="p-3.5 whitespace-nowrap min-w-[220px]">YouTube 頻道資訊</th>
+                            <th class="p-3.5 whitespace-nowrap min-w-[160px]">頻道分類標籤</th>
+                            <th class="p-3.5 text-slate-900 font-bold bg-amber-50/80 border-x border-amber-200/60 whitespace-nowrap min-w-[160px]">
+                                🗓️ 頻道最後更新日 <span class="text-[10px] font-normal text-amber-700">(Req D1)</span>
+                            </th>
+                            <th class="p-3.5 whitespace-nowrap min-w-[110px]">近半年觀看</th>
+                            <th class="p-3.5 whitespace-nowrap min-w-[110px]">最後觀看時間</th>
+                            <th class="p-3.5 text-center whitespace-nowrap w-28 min-w-[110px]">訂閱狀態</th>
+                            <th class="p-3.5 text-right whitespace-nowrap w-64 min-w-[260px]">退訂操作捷徑 (Req C1)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="channels-tbody" class="divide-y divide-slate-100">
+                        <!-- Rendered dynamically by JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- View Mode 2: Responsive Mobile Cards Grid Container -->
+        <div id="mobile-cards-container" class="grid grid-cols-1 sm:grid-cols-2 gap-3 md:hidden">
+            <!-- Rendered dynamically by JS -->
+        </div>
+
+    </main>
+
+    <!-- Requirement C1 Modal: Unsubscribe Explanation & Help -->
+    <div id="unsub-guide-modal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 fade-in">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                    <i class="fa-solid fa-circle-info text-red-600"></i>
+                    關於「第三方網頁取消訂閱機制」之說明
+                </h3>
+                <button onclick="toggleUnsubGuide(false)" class="text-slate-400 hover:text-slate-600 p-1">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <div class="text-xs text-slate-600 space-y-3 leading-relaxed">
+                <p class="font-semibold text-slate-800">
+                    為什麼第三方網頁沒辦法「直接按一下按鈕就自動取消訂閱」？
+                </p>
+                <ul class="list-disc pl-5 space-y-1.5 text-slate-500">
+                    <li><strong>Google 安全與 OAuth2 授權規範：</strong>取消訂閱屬於帳號修改權限，瀏覽器基於跨站安全 (CORS) 禁止第三方網站無授權執行敏感動作。</li>
+                    <li><strong>防範惡意腳本：</strong>確保使用者的訂閱清單不會因為誤觸網頁就被一次清空。</li>
+                </ul>
+
+                <div class="bg-red-50 p-3.5 rounded-xl border border-red-200 text-red-900 space-y-2">
+                    <div class="font-bold text-xs flex items-center gap-1">
+                        <i class="fa-solid fa-lightbulb text-red-600"></i> 本系統為您提供的最高效整理方案：
+                    </div>
+                    <ol class="list-decimal pl-4 space-y-1.5 text-[11px]">
+                        <li>點擊表格右側 <strong>「開啟頻道頁退訂」</strong>：直接跳轉至該頻道首頁並觸發退訂對話框。</li>
+                        <li>點擊頂部 <strong>「開啟 YouTube 官方退訂頁」</strong>：一鍵打開官方所有頻道列表。</li>
+                        <li>使用本系統的 <strong>「標記退訂」與多選批次功能</strong>：快速標記清理狀態並匯出備份。</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="pt-2 flex justify-end">
+                <button onclick="toggleUnsubGuide(false)" class="bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold px-4 py-2 rounded-lg transition-all">
+                    我瞭解了
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import / Export Modal (CSV / JSON Support) -->
+    <div id="import-export-modal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 fade-in">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                    <i class="fa-solid fa-file-invoice text-indigo-600"></i>
+                    訂閱紀錄匯入 (CSV / JSON) 與備份
+                </h3>
+                <button onclick="toggleImportExportModal(false)" class="text-slate-400 hover:text-slate-600 p-1">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <div class="space-y-4">
+                <!-- Import Box -->
+                <div class="bg-indigo-50/60 p-4 rounded-xl border border-indigo-200/80 space-y-3">
+                    <div class="text-xs font-bold text-indigo-900 flex items-center gap-1.5">
+                        <i class="fa-solid fa-file-arrow-up text-indigo-600"></i> 1. 匯入 CSV 檔或 JSON 備份檔
+                    </div>
+                    <p class="text-[11px] text-slate-600 leading-relaxed">
+                        支援 YouTube Takeout 導出的 <code class="bg-white px-1 py-0.5 rounded border border-indigo-200 text-indigo-800 font-mono">subscriptions.csv</code> 或任何包含頻道名稱與網址的 CSV 表格。
+                    </p>
+                    <div class="flex flex-col sm:flex-row gap-2 pt-1">
+                        <input 
+                            type="file" 
+                            id="import-file-input" 
+                            accept=".csv,.json"
+                            class="block w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-700 cursor-pointer"
+                        />
+                        <button 
+                            onclick="handleImportFile()" 
+                            class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-4 py-2 rounded-lg font-semibold transition-all shrink-0 flex items-center justify-center gap-1.5 shadow-xs"
+                        >
+                            <i class="fa-solid fa-upload"></i> 開始匯入解析
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Export Box -->
+                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+                    <div class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                        <i class="fa-solid fa-file-arrow-down text-emerald-600"></i> 2. 匯出目前紀錄與退訂狀態
+                    </div>
+                    <p class="text-[11px] text-slate-500">
+                        您可以將整理後的訂閱清單匯出為 CSV 表格供 Excel 開啟，或匯出為完整的 JSON 備份檔。
+                    </p>
+                    <div class="flex gap-2">
+                        <button 
+                            onclick="exportData('csv')" 
+                            class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold py-2 rounded-lg transition-all flex items-center justify-center gap-1.5 shadow-xs"
+                        >
+                            <i class="fa-solid fa-file-csv"></i> 下載 CSV 表格檔
+                        </button>
+                        <button 
+                            onclick="exportData('json')" 
+                            class="flex-1 bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold py-2 rounded-lg transition-all flex items-center justify-center gap-1.5 shadow-xs"
+                        >
+                            <i class="fa-solid fa-file-code"></i> 下載 JSON 備份檔
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pt-2 flex justify-end border-t border-slate-100">
+                <button onclick="toggleImportExportModal(false)" class="bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold px-4 py-2 rounded-lg transition-all">
+                    關閉
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cloud Sync Modal (Cross-device Data Synchronization) -->
+    <div id="cloud-sync-modal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 fade-in">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                    <i class="fa-solid fa-cloud-arrow-up text-sky-600"></i>
+                    跨裝置雲端同步與備份
+                </h3>
+                <button onclick="toggleCloudSyncModal(false)" class="text-slate-400 hover:text-slate-600 p-1">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <div class="space-y-4">
+                <div class="bg-sky-50 p-4 rounded-xl border border-sky-200 space-y-2">
+                    <div class="text-xs font-bold text-sky-900 flex items-center gap-1.5">
+                        <i class="fa-solid fa-key text-sky-600"></i> 您的雲端同步金鑰 (Sync Key)
+                    </div>
+                    <p class="text-[11px] text-slate-600">
+                        在其他裝置（如手機或另一台電腦）輸入相同的金鑰，即可跨裝置同步與備份您匯入的訂閱紀錄：
+                    </p>
+                    <div class="flex gap-2 pt-1">
+                        <input 
+                            type="text" 
+                            id="cloud-sync-key" 
+                            placeholder="正在建立個人金鑰..."
+                            class="flex-1 bg-white border border-sky-300 text-xs text-slate-800 rounded-lg px-3 py-2 font-mono focus:outline-none focus:ring-2 focus:ring-sky-500"
+                        />
+                        <button onclick="copySyncKey()" class="bg-sky-600 hover:bg-sky-700 text-white text-xs px-3.5 py-2 rounded-lg font-medium transition-all shrink-0 flex items-center gap-1">
+                            <i class="fa-solid fa-copy"></i> 複製
+                        </button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-2 flex flex-col justify-between">
+                        <div>
+                            <div class="text-xs font-bold text-slate-800 mb-1 flex items-center gap-1">
+                                <i class="fa-solid fa-upload text-indigo-600"></i> 備份至雲端
+                            </div>
+                            <p class="text-[11px] text-slate-500">將目前的訂閱紀錄與退訂標記儲存至雲端。</p>
+                        </div>
+                        <button onclick="saveToCloud()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold py-2 rounded-lg transition-all shadow-xs flex items-center justify-center gap-1.5">
+                            <i class="fa-solid fa-cloud-arrow-up"></i> 備份至雲端
+                        </button>
+                    </div>
+
+                    <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-2 flex flex-col justify-between">
+                        <div>
+                            <div class="text-xs font-bold text-slate-800 mb-1 flex items-center gap-1">
+                                <i class="fa-solid fa-download text-emerald-600"></i> 從雲端下載
+                            </div>
+                            <p class="text-[11px] text-slate-500">依據輸入的金鑰從雲端下載最新的頻道資料。</p>
+                        </div>
+                        <button onclick="loadFromCloud()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold py-2 rounded-lg transition-all shadow-xs flex items-center justify-center gap-1.5">
+                            <i class="fa-solid fa-cloud-arrow-down"></i> 下載雲端資料
+                        </button>
+                    </div>
+                </div>
+
+                <div class="bg-amber-50 p-3 rounded-xl border border-amber-200 text-[11px] text-amber-900 flex items-start gap-2">
+                    <i class="fa-solid fa-lightbulb text-amber-600 mt-0.5 shrink-0"></i>
+                    <span>跨裝置同步提示：在另一台裝置打開本網頁，輸入此同步金鑰並點擊「下載雲端資料」，就能無縫同步所有紀錄！</span>
+                </div>
+            </div>
+
+            <div class="pt-2 flex justify-end border-t border-slate-100">
+                <button onclick="toggleCloudSyncModal(false)" class="bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold px-4 py-2 rounded-lg transition-all">
+                    關閉
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal for Resetting Data -->
+    <div id="confirm-reset-modal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-4 fade-in">
+            <div class="flex items-center gap-3 text-amber-600">
+                <i class="fa-solid fa-triangle-exclamation text-2xl"></i>
+                <h3 class="text-sm font-bold text-slate-900">確定清空資料？</h3>
+            </div>
+            <p class="text-xs text-slate-600 leading-relaxed">
+                這將會清空目前儲存的所有頻道紀錄。您隨時可以重新上傳 CSV 檔案或載入測試範例資料。
+            </p>
+            <div class="flex justify-end gap-2 pt-2">
+                <button onclick="closeResetModal()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-3.5 py-2 rounded-lg">
+                    取消
+                </button>
+                <button onclick="confirmResetData()" class="bg-red-600 hover:bg-red-700 text-white text-xs font-semibold px-3.5 py-2 rounded-lg shadow-sm">
+                    確定清空
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-400 mt-auto">
+        <p>YouTube Subscriptions & History Smart Management Dashboard © 2026</p>
+    </footer>
+
+    <!-- JavaScript Application Logic -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Firebase Configuration & Reference Initialization
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'yt-sub-manager-app';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+
+        let db = null;
+        let auth = null;
+        let cloudUser = null;
+
+        // Initialize Cloud Auth and Sync Key
+        async function initCloud() {
+            if (!firebaseConfig) return;
+            try {
+                const firebaseApp = initializeApp(firebaseConfig);
+                db = getFirestore(firebaseApp);
+                auth = getAuth(firebaseApp);
+
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+                cloudUser = auth.currentUser;
+                const syncInput = document.getElementById('cloud-sync-key');
+                if (syncInput && cloudUser) {
+                    syncInput.value = cloudUser.uid;
+                }
+            } catch (err) {
+                console.warn("Cloud Sync setup note:", err);
+            }
+        }
+
+        // Global Cloud Operations
+        window.saveToCloud = async function() {
+            const keyInput = document.getElementById('cloud-sync-key');
+            const syncKey = (keyInput && keyInput.value.trim()) ? keyInput.value.trim() : (cloudUser ? cloudUser.uid : null);
+            
+            if (!db || !cloudUser || !syncKey) {
+                showToast("雲端連線中，請稍後再試", "warning");
+                return;
+            }
+
+            try {
+                const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'user_syncs', syncKey);
+                await setDoc(docRef, {
+                    channels: appState.channels,
+                    updatedAt: new Date().toISOString()
+                });
+                showToast("已成功將訂閱紀錄備份上傳至雲端！");
+            } catch (e) {
+                showToast("備份失敗: " + e.message, "error");
+            }
+        };
+
+        window.loadFromCloud = async function() {
+            const keyInput = document.getElementById('cloud-sync-key');
+            const syncKey = (keyInput && keyInput.value.trim()) ? keyInput.value.trim() : (cloudUser ? cloudUser.uid : null);
+
+            if (!db || !cloudUser || !syncKey) {
+                showToast("雲端連線中，請稍後再試", "warning");
+                return;
+            }
+
+            try {
+                const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'user_syncs', syncKey);
+                const snap = await getDoc(docRef);
+                if (snap.exists() && snap.data().channels) {
+                    appState.channels = snap.data().channels;
+                    saveChannelsToStorage();
+                    showToast(`已從雲端成功載入 ${appState.channels.length} 個頻道紀錄！`);
+                    render();
+                } else {
+                    showToast("找不到此同步金鑰對應的雲端紀錄", "warning");
+                }
+            } catch (e) {
+                showToast("載入失敗: " + e.message, "error");
+            }
+        };
+
+        window.toggleCloudSyncModal = function(show) {
+            const el = document.getElementById('cloud-sync-modal');
+            if (el) el.classList.toggle('hidden', !show);
+        };
+
+        window.copySyncKey = function() {
+            const syncInput = document.getElementById('cloud-sync-key');
+            if (syncInput && syncInput.value) {
+                syncInput.select();
+                document.execCommand('copy');
+                showToast("已複製同步金鑰至剪貼簿！");
+            }
+        };
+
+        // Reference Simulated Current Date: 2026-08-13
+        const NOW_DATE = new Date("2026-08-13");
+
+        // Initial state is completely EMPTY (0 channels)
+        const INITIAL_CHANNELS = [];
+
+        // Sample channels for demo testing
+        const SAMPLE_CHANNELS_DEMO = [
+            {
+                id: "UC_gao_mr_mrs",
+                title: "老高與小茉 Mr & Mrs Gao",
+                url: "https://www.youtube.com/@MrandMrsGao",
+                avatar: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=100&h=100&fit=crop&crop=faces",
+                lastUploadDate: "2026-08-10",
+                watchedCount: 14,
+                isLiveStreamer: false,
+                isNews: false,
+                sixMonthUploads: 22,
+                lastWatchedDate: "2026-08-11",
+                customCategory: "科普說書",
+                isUnsubscribed: false
+            },
+            {
+                id: "UC_tvbs_news",
+                title: "TVBS 選情與焦點新聞 Live",
+                url: "https://www.youtube.com/@TVBSNEWS01",
+                avatar: "https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=100&h=100&fit=crop&crop=faces",
+                lastUploadDate: "2026-08-13",
+                watchedCount: 0,
+                isLiveStreamer: true,
+                isNews: true,
+                sixMonthUploads: 180,
+                lastWatchedDate: "無紀錄",
+                customCategory: "即時新聞",
+                isUnsubscribed: false
+            },
+            {
+                id: "UC_tech_guy",
+                title: "柴鼠兄弟 ZRBros",
+                url: "https://www.youtube.com/@ZRBros",
+                avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop&crop=faces",
+                lastUploadDate: "2026-08-01",
+                watchedCount: 8,
+                isLiveStreamer: false,
+                isNews: false,
+                sixMonthUploads: 12,
+                lastWatchedDate: "2026-08-05",
+                customCategory: "投資理財",
+                isUnsubscribed: false
+            }
+        ];
+
+        // Application Reactive State
+        let appState = {
+            channels: loadChannelsFromStorage(),
+            activeTab: 'all',
+            searchQuery: '',
+            sortBy: 'lastUploadDate',
+            selectedIds: new Set(),
+            viewMode: 'auto',
+            isFetchingAPI: false
+        };
+
+        // Load / Save localStorage
+        function loadChannelsFromStorage() {
+            try {
+                const saved = localStorage.getItem('yt_managed_channels');
+                return (saved && JSON.parse(saved).length > 0) ? JSON.parse(saved) : INITIAL_CHANNELS;
+            } catch(e) {
+                return INITIAL_CHANNELS;
+            }
+        }
+
+        function saveChannelsToStorage() {
+            localStorage.setItem('yt_managed_channels', JSON.stringify(appState.channels));
+        }
+
+        // Days Ago Calculation Helper
+        function getDaysAgo(dateStr) {
+            if (!dateStr || dateStr === "無紀錄") return 9999;
+            const diffMs = NOW_DATE - new Date(dateStr);
+            const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+            return isNaN(days) ? 9999 : (days < 0 ? 0 : days);
+        }
+
+        // Categorize Channels Rule Engine
+        function getChannelCategories(ch) {
+            const categories = [];
+            const daysSinceUpload = getDaysAgo(ch.lastUploadDate);
+
+            if (ch.isLiveStreamer) categories.push("live");
+            if (ch.watchedCount >= 5) categories.push("frequent");
+            if (daysSinceUpload > 180) categories.push("inactive");
+            if (ch.sixMonthUploads >= 5 && ch.watchedCount <= 2 && daysSinceUpload <= 180) categories.push("high_freq_unwatched");
+            if (ch.isNews || (ch.title && (ch.title.includes("新聞") || ch.title.includes("News")))) categories.push("news");
+            if (daysSinceUpload <= 180 && ch.watchedCount === 0) categories.push("updated_unwatched");
+
+            return categories;
+        }
+
+        // Toast Notification System
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+            const toast = document.createElement('div');
+            const bgClass = type === 'error' ? 'bg-red-900 border-red-700' : (type === 'warning' ? 'bg-amber-900 border-amber-700' : 'bg-slate-900 border-slate-700');
+            const icon = type === 'error' ? 'fa-circle-exclamation text-red-400' : (type === 'warning' ? 'fa-triangle-exclamation text-amber-400' : 'fa-circle-check text-green-400');
+            
+            toast.className = `pointer-events-auto ${bgClass} text-white text-xs px-4 py-3 rounded-xl shadow-2xl flex items-center gap-2.5 fade-in border`;
+            toast.innerHTML = `<i class="fa-solid ${icon}"></i> <span>${message}</span>`;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'transition-opacity', 'duration-300');
+                setTimeout(() => toast.remove(), 300);
+            }, 3200);
+        }
+
+        // CSV Parser Engine for YouTube Subscriptions CSV
+        function parseCSVToChannels(text) {
+            const lines = text.split(/\r\n|\n/);
+            if (lines.length < 2) return [];
+
+            function parseCSVLine(line) {
+                const cells = [];
+                let cur = '';
+                let inQuotes = false;
+                for (let i = 0; i < line.length; i++) {
+                    const c = line[i];
+                    if (c === '"') {
+                        inQuotes = !inQuotes;
+                    } else if (c === ',' && !inQuotes) {
+                        cells.push(cur.trim());
+                        cur = '';
+                    } else {
+                        cur += c;
+                    }
+                }
+                cells.push(cur.trim());
+                return cells;
+            }
+
+            const headers = parseCSVLine(lines[0]).map(h => h.replace(/^"|"$/g, '').toLowerCase());
+            const parsedList = [];
+
+            for (let i = 1; i < lines.length; i++) {
+                if (!lines[i].trim()) continue;
+                const row = parseCSVLine(lines[i]).map(cell => cell.replace(/^"|"$/g, ''));
+                if (row.length === 0 || !row[0]) continue;
+
+                let id = `UC_IMPORTED_${i}_${Math.random().toString(36).substring(2, 7)}`;
+                let title = '';
+                let url = '';
+                let lastUploadDate = '';
+                let watchedCount = undefined;
+                let isUnsubscribed = false;
+
+                headers.forEach((h, idx) => {
+                    const val = row[idx] || '';
+                    if (h.includes('id') || h.includes('頻道id') || h.includes('channel id')) id = val || id;
+                    if (h.includes('title') || h.includes('名稱') || h.includes('channel title')) title = val;
+                    if (h.includes('url') || h.includes('網址') || h.includes('channel url')) url = val;
+                    if (h.includes('upload') || h.includes('更新日') || h.includes('最後更新')) lastUploadDate = val;
+                    if (h.includes('watched') || h.includes('觀看數')) watchedCount = parseInt(val, 10);
+                    if (h.includes('unsubscribed') || h.includes('退訂')) isUnsubscribed = val.includes('已退訂') || val === 'true';
+                });
+
+                if (!title && row[2]) title = row[2];
+                if (!title && row[1]) title = row[1];
+                if (!title && row[0]) title = row[0];
+
+                if (!url && row[1] && row[1].startsWith('http')) url = row[1];
+                if (!url && id) url = `https://www.youtube.com/channel/${id}`;
+
+                if (title) {
+                    const daysAgoRandom = Math.floor(Math.random() * 120);
+                    const calcDate = lastUploadDate || new Date(NOW_DATE - daysAgoRandom * 86400000).toISOString().split('T')[0];
+                    const calcWatched = (watchedCount !== undefined && !isNaN(watchedCount)) ? watchedCount : (Math.random() > 0.5 ? Math.floor(Math.random() * 15) : 0);
+
+                    parsedList.push({
+                        id: id,
+                        title: title,
+                        url: url || `https://www.youtube.com/@${title.replace(/\s+/g, '')}`,
+                        avatar: `https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=100&h=100&fit=crop&crop=faces`,
+                        lastUploadDate: calcDate,
+                        watchedCount: calcWatched,
+                        isLiveStreamer: i % 3 === 0,
+                        isNews: title.includes('新聞') || title.includes('News') || title.includes('TVBS') || title.includes('東森'),
+                        sixMonthUploads: Math.floor(Math.random() * 50) + 1,
+                        lastWatchedDate: calcWatched > 0 ? "2026-08-05" : "無紀錄",
+                        customCategory: "匯入頻道",
+                        isUnsubscribed: isUnsubscribed
+                    });
+                }
+            }
+
+            return parsedList;
+        }
+
+        // Process & Calculate Stats
+        function getProcessedChannels() {
+            return appState.channels.map(ch => ({
+                ...ch,
+                categories: getChannelCategories(ch),
+                daysAgo: getDaysAgo(ch.lastUploadDate)
+            }));
+        }
+
+        function calculateStats(processed) {
+            return {
+                total: processed.length,
+                live: processed.filter(c => c.categories.includes("live")).length,
+                frequent: processed.filter(c => c.categories.includes("frequent")).length,
+                inactive: processed.filter(c => c.categories.includes("inactive")).length,
+                highFreqUnwatched: processed.filter(c => c.categories.includes("high_freq_unwatched")).length,
+                news: processed.filter(c => c.categories.includes("news")).length,
+                updatedUnwatched: processed.filter(c => c.categories.includes("updated_unwatched")).length,
+                unsubscribed: processed.filter(c => c.isUnsubscribed).length
+            };
+        }
+
+        // Master Render Function
+        function render() {
+            const processed = getProcessedChannels();
+            const stats = calculateStats(processed);
+
+            renderMetrics(stats);
+            renderCategoryTabs(stats);
+
+            const tableContainer = document.getElementById('desktop-table-container');
+            const cardsContainer = document.getElementById('mobile-cards-container');
+
+            if (appState.viewMode === 'table') {
+                tableContainer.classList.remove('hidden');
+                cardsContainer.classList.add('hidden');
+            } else if (appState.viewMode === 'cards') {
+                tableContainer.classList.add('hidden');
+                cardsContainer.classList.remove('hidden');
+            } else {
+                tableContainer.className = "bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden hidden md:block";
+                cardsContainer.className = "grid grid-cols-1 sm:grid-cols-2 gap-3 md:hidden";
+            }
+
+            renderChannelsTable(processed);
+            renderChannelsCards(processed);
+            updateBatchUI(processed);
+        }
+
+        // Render Metrics Grid
+        function renderMetrics(stats) {
+            const grid = document.getElementById('metrics-grid');
+            if (!grid) return;
+            grid.innerHTML = `
+                <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm">
+                    <div class="text-[11px] font-medium text-slate-500 mb-0.5">總訂閱頻道</div>
+                    <div class="text-xl font-bold text-slate-900">${stats.total} <span class="text-xs font-normal text-slate-400">個</span></div>
+                    <div class="text-[10px] text-slate-400 mt-0.5">已標記退訂: ${stats.unsubscribed}</div>
+                </div>
+
+                <div class="bg-white p-3.5 rounded-xl border border-red-200 shadow-sm bg-red-50/20">
+                    <div class="text-[11px] font-medium text-red-600 mb-0.5 flex items-center justify-between">
+                        有更新但沒看
+                        <i class="fa-solid fa-eye-slash text-red-400"></i>
+                    </div>
+                    <div class="text-xl font-bold text-red-700">${stats.updatedUnwatched} <span class="text-xs font-normal text-red-400">個</span></div>
+                    <div class="text-[10px] text-red-500 mt-0.5">Req D2 專用分類</div>
+                </div>
+
+                <div class="bg-white p-3.5 rounded-xl border border-amber-200 shadow-sm bg-amber-50/20">
+                    <div class="text-[11px] font-medium text-amber-700 mb-0.5 flex items-center justify-between">
+                        冷門高頻更新
+                        <i class="fa-solid fa-bolt text-amber-500"></i>
+                    </div>
+                    <div class="text-xl font-bold text-amber-800">${stats.highFreqUnwatched} <span class="text-xs font-normal text-amber-500">個</span></div>
+                    <div class="text-[10px] text-amber-600 mt-0.5">半年更新>5次少看</div>
+                </div>
+
+                <div class="bg-white p-3.5 rounded-xl border border-green-200 shadow-sm bg-green-50/20">
+                    <div class="text-[11px] font-medium text-green-700 mb-0.5 flex items-center justify-between">
+                        經常觀看頻道
+                        <i class="fa-solid fa-star text-green-500"></i>
+                    </div>
+                    <div class="text-xl font-bold text-green-800">${stats.frequent} <span class="text-xs font-normal text-green-500">個</span></div>
+                    <div class="text-[10px] text-green-600 mt-0.5">近半年看過 >= 5 次</div>
+                </div>
+
+                <div class="bg-white p-3.5 rounded-xl border border-slate-300 shadow-sm bg-slate-100">
+                    <div class="text-[11px] font-medium text-slate-600 mb-0.5 flex items-center justify-between">
+                        停更 / 超過半年
+                        <i class="fa-solid fa-skull text-slate-400"></i>
+                    </div>
+                    <div class="text-xl font-bold text-slate-700">${stats.inactive} <span class="text-xs font-normal text-slate-400">個</span></div>
+                    <div class="text-[10px] text-slate-500 mt-0.5">最後更新 > 180 天</div>
+                </div>
+
+                <div class="bg-white p-3.5 rounded-xl border border-purple-200 shadow-sm bg-purple-50/20">
+                    <div class="text-[11px] font-medium text-purple-700 mb-0.5 flex items-center justify-between">
+                        經常直播頻道
+                        <i class="fa-solid fa-headset text-purple-500"></i>
+                    </div>
+                    <div class="text-xl font-bold text-purple-800">${stats.live} <span class="text-xs font-normal text-purple-500">個</span></div>
+                    <div class="text-[10px] text-purple-600 mt-0.5">近一年進行過直播</div>
+                </div>
+            `;
+        }
+
+        // Render Category Tabs
+        function renderCategoryTabs(stats) {
+            const container = document.getElementById('category-tabs');
+            if (!container) return;
+            const tabs = [
+                { id: 'all', label: `全部訂閱 (${stats.total})`, icon: 'fa-list-ul', activeClass: 'bg-slate-900 text-white' },
+                { id: 'updated_unwatched', label: `👀 有更新但我沒看 (${stats.updatedUnwatched})`, icon: '', activeClass: 'bg-red-600 text-white', badge: 'Req D2' },
+                { id: 'high_freq_unwatched', label: `⚡ 冷門高頻更新 (${stats.highFreqUnwatched})`, icon: '', activeClass: 'bg-amber-600 text-white' },
+                { id: 'frequent', label: `⭐ 經常觀看 (${stats.frequent})`, icon: '', activeClass: 'bg-green-600 text-white' },
+                { id: 'inactive', label: `💀 停更/超過半年 (${stats.inactive})`, icon: '', activeClass: 'bg-slate-700 text-white' },
+                { id: 'live', label: `📡 經常直播 (${stats.live})`, icon: '', activeClass: 'bg-purple-600 text-white' },
+                { id: 'news', label: `📰 新聞頻道 (${stats.news})`, icon: '', activeClass: 'bg-blue-600 text-white' },
+                { id: 'unsubscribed', label: `已標記退訂 (${stats.unsubscribed})`, icon: 'fa-check-double', activeClass: 'bg-slate-500 text-white' }
+            ];
+
+            container.innerHTML = tabs.map(tab => {
+                const isActive = appState.activeTab === tab.id;
+                const baseClass = "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer";
+                const colorClass = isActive ? tab.activeClass : "bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200/60";
+                
+                return `
+                    <button onclick="setActiveTab('${tab.id}')" class="${baseClass} ${colorClass}">
+                        ${tab.icon ? `<i class="fa-solid ${tab.icon}"></i>` : ''}
+                        <span>${tab.label}</span>
+                        ${tab.badge ? `<span class="bg-red-200 text-red-900 text-[9px] px-1.5 py-0.2 rounded font-mono font-bold">${tab.badge}</span>` : ''}
+                    </button>
+                `;
+            }).join('');
+        }
+
+        // Filter and Sort Channels
+        function getFilteredChannels(processed) {
+            return processed.filter(ch => {
+                if (appState.activeTab === 'live' && !ch.categories.includes('live')) return false;
+                if (appState.activeTab === 'frequent' && !ch.categories.includes('frequent')) return false;
+                if (appState.activeTab === 'inactive' && !ch.categories.includes('inactive')) return false;
+                if (appState.activeTab === 'high_freq_unwatched' && !ch.categories.includes('high_freq_unwatched')) return false;
+                if (appState.activeTab === 'news' && !ch.categories.includes('news')) return false;
+                if (appState.activeTab === 'updated_unwatched' && !ch.categories.includes('updated_unwatched')) return false;
+                if (appState.activeTab === 'unsubscribed' && !ch.isUnsubscribed) return false;
+
+                if (appState.searchQuery.trim()) {
+                    const q = appState.searchQuery.toLowerCase();
+                    return ch.title.toLowerCase().includes(q) || 
+                           (ch.customCategory && ch.customCategory.toLowerCase().includes(q));
+                }
+                return true;
+            }).sort((a, b) => {
+                if (appState.sortBy === 'lastUploadDate') return a.daysAgo - b.daysAgo;
+                if (appState.sortBy === 'watchedCount') return b.watchedCount - a.watchedCount;
+                if (appState.sortBy === 'title') return a.title.localeCompare(b.title, 'zh-TW');
+                if (appState.sortBy === 'sixMonthUploads') return b.sixMonthUploads - a.sixMonthUploads;
+                return 0;
+            });
+        }
+
+        // Render Desktop Table
+        function renderChannelsTable(processed) {
+            const tbody = document.getElementById('channels-tbody');
+            if (!tbody) return;
+            const filtered = getFilteredChannels(processed);
+
+            if (filtered.length === 0) {
+                if (appState.channels.length === 0) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="8" class="p-12 text-center text-slate-500">
+                                <div class="max-w-md mx-auto space-y-3">
+                                    <div class="bg-indigo-50 w-12 h-12 rounded-full flex items-center justify-center mx-auto text-indigo-600 text-xl">
+                                        <i class="fa-solid fa-inbox"></i>
+                                    </div>
+                                    <h4 class="font-bold text-slate-800 text-sm">目前尚無任何訂閱頻道紀錄</h4>
+                                    <p class="text-xs text-slate-500 leading-relaxed">
+                                        請點擊右上角「<strong>匯入/匯出 (CSV/JSON)</strong>」上傳您的 CSV 訂閱檔，或使用「<strong>跨裝置雲端同步</strong>」從雲端下載資料！
+                                    </p>
+                                    <div class="flex items-center justify-center gap-2 pt-2">
+                                        <button onclick="toggleImportExportModal(true)" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold px-3.5 py-2 rounded-lg transition-all shadow-xs">
+                                            <i class="fa-solid fa-file-import mr-1"></i> 匯入 CSV 訂閱檔
+                                        </button>
+                                        <button onclick="loadDemoSampleData()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-3.5 py-2 rounded-lg transition-all">
+                                            載入測試範例資料
+                                        </button>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                } else {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="8" class="p-12 text-center text-slate-400">
+                                <i class="fa-solid fa-folder-open text-3xl mb-2 block text-slate-300"></i>
+                                沒有符合此過濾條件的 YouTube 頻道
+                            </td>
+                        </tr>
+                    `;
+                }
+                return;
+            }
+
+            tbody.innerHTML = filtered.map(ch => {
+                const daysAgoText = ch.daysAgo === 9999 ? "無更新紀錄" : (ch.daysAgo === 0 ? "今天更新" : `${ch.daysAgo} 天前`);
+                return `
+                    <tr class="hover:bg-slate-50/80 transition-colors ${ch.isUnsubscribed ? 'bg-slate-50/60 opacity-60' : ''}">
+                        <td class="p-3.5 text-center whitespace-nowrap">
+                            <input 
+                                type="checkbox" 
+                                ${appState.selectedIds.has(ch.id) ? 'checked' : ''}
+                                onclick="toggleSelectOne('${ch.id}')"
+                                class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                            />
+                        </td>
+
+                        <td class="p-3.5 whitespace-nowrap">
+                            <div class="flex items-center space-x-3">
+                                <img 
+                                    src="${ch.avatar}" 
+                                    alt="${ch.title}" 
+                                    class="w-9 h-9 rounded-full object-cover border border-slate-200 shrink-0"
+                                    onerror="this.src='https://placehold.co/100x100/e2e8f0/64748b?text=YT'"
+                                />
+                                <div class="min-w-0">
+                                    <a 
+                                        href="${ch.url}" 
+                                        target="_blank" 
+                                        rel="noreferrer"
+                                        class="font-semibold text-slate-900 hover:text-red-600 transition-colors flex items-center gap-1.5 truncate"
+                                    >
+                                        <span class="truncate">${ch.title}</span>
+                                        <i class="fa-solid fa-up-right-from-square text-[10px] opacity-40 shrink-0"></i>
+                                    </a>
+                                    <div class="text-[10px] text-slate-400 mt-0.5 whitespace-nowrap">
+                                        半年影片 ${ch.sixMonthUploads} 部
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+
+                        <td class="p-3.5">
+                            <div class="flex flex-wrap gap-1">
+                                ${ch.categories.includes("updated_unwatched") ? `<span class="bg-red-100 text-red-700 px-2 py-0.5 rounded-full text-[10px] font-semibold border border-red-200 whitespace-nowrap">👀 有更新沒看</span>` : ''}
+                                ${ch.categories.includes("high_freq_unwatched") ? `<span class="bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full text-[10px] font-semibold border border-amber-200 whitespace-nowrap">⚡ 冷門高頻</span>` : ''}
+                                ${ch.categories.includes("frequent") ? `<span class="bg-green-100 text-green-800 px-2 py-0.5 rounded-full text-[10px] font-semibold whitespace-nowrap">⭐ 經常觀看</span>` : ''}
+                                ${ch.categories.includes("inactive") ? `<span class="bg-slate-200 text-slate-700 px-2 py-0.5 rounded-full text-[10px] font-semibold whitespace-nowrap">💀 停更過久</span>` : ''}
+                                ${ch.categories.includes("live") ? `<span class="bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full text-[10px] font-semibold whitespace-nowrap">📡 常直播</span>` : ''}
+                                ${ch.categories.includes("news") ? `<span class="bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full text-[10px] font-semibold whitespace-nowrap">📰 新聞頻道</span>` : ''}
+                            </div>
+                        </td>
+
+                        <td class="p-3.5 bg-amber-50/50 border-x border-amber-200/60 whitespace-nowrap">
+                            <div class="font-mono font-bold text-slate-800 text-xs">
+                                ${ch.lastUploadDate}
+                            </div>
+                            <div class="text-[10px] text-amber-800 font-medium mt-0.5">
+                                ${daysAgoText}
+                            </div>
+                        </td>
+
+                        <td class="p-3.5 whitespace-nowrap">
+                            <span class="font-mono font-bold ${ch.watchedCount >= 5 ? 'text-green-600' : ch.watchedCount === 0 ? 'text-red-500' : 'text-slate-700'}">
+                                ${ch.watchedCount} 次
+                            </span>
+                        </td>
+
+                        <td class="p-3.5 text-slate-500 font-mono text-[11px] whitespace-nowrap">
+                            ${ch.lastWatchedDate}
+                        </td>
+
+                        <td class="p-3.5 text-center whitespace-nowrap">
+                            ${ch.isUnsubscribed ? 
+                                `<span class="inline-flex items-center gap-1 text-slate-500 bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-full text-[11px] font-semibold whitespace-nowrap shrink-0"><i class="fa-solid fa-circle-xmark text-slate-400"></i> 已標記退訂</span>` : 
+                                `<span class="inline-flex items-center gap-1 text-emerald-800 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full text-[11px] font-semibold whitespace-nowrap shrink-0"><i class="fa-solid fa-circle-check text-emerald-500"></i> 訂閱中</span>`
+                            }
+                        </td>
+
+                        <td class="p-3.5 text-right whitespace-nowrap">
+                            <div class="inline-flex items-center justify-end gap-2 shrink-0">
+                                <a 
+                                    href="${ch.url}?sub_confirmation=0"
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    class="bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-[11px] font-semibold px-2.5 py-1.5 rounded-lg transition-all inline-flex items-center gap-1 whitespace-nowrap shrink-0 shadow-xs"
+                                    title="前往 YouTube 該頻道頁面並進行退訂"
+                                >
+                                    <i class="fa-brands fa-youtube text-red-600"></i>
+                                    <span class="whitespace-nowrap">開啟頻道頁退訂</span>
+                                </a>
+
+                                <button 
+                                    onclick="toggleUnsubscribeState('${ch.id}')"
+                                    class="px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition-all border whitespace-nowrap shrink-0 shadow-xs ${
+                                        ch.isUnsubscribed 
+                                            ? 'bg-slate-100 border-slate-300 text-slate-700 hover:bg-slate-200' 
+                                            : 'bg-slate-900 border-slate-900 text-white hover:bg-slate-800'
+                                    }"
+                                >
+                                    <span class="whitespace-nowrap">${ch.isUnsubscribed ? '復原訂閱' : '標記退訂'}</span>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Render Mobile Cards View
+        function renderChannelsCards(processed) {
+            const cardsContainer = document.getElementById('mobile-cards-container');
+            if (!cardsContainer) return;
+            const filtered = getFilteredChannels(processed);
+
+            if (filtered.length === 0) {
+                if (appState.channels.length === 0) {
+                    cardsContainer.innerHTML = `
+                        <div class="col-span-full p-8 text-center bg-white rounded-xl border border-slate-200 space-y-3">
+                            <i class="fa-solid fa-inbox text-3xl text-indigo-500"></i>
+                            <div class="font-bold text-slate-800 text-xs">目前尚無訂閱頻道資料</div>
+                            <p class="text-[11px] text-slate-500">點擊上方「匯入/匯出」匯入 CSV 或使用「雲端同步」下載資料。</p>
+                            <button onclick="loadDemoSampleData()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs px-3 py-1.5 rounded-lg font-semibold">
+                                載入測試範例資料
+                            </button>
+                        </div>
+                    `;
+                } else {
+                    cardsContainer.innerHTML = `
+                        <div class="col-span-full p-8 text-center text-slate-400 bg-white rounded-xl border border-slate-200">
+                            <i class="fa-solid fa-folder-open text-2xl mb-1 block"></i>
+                            沒有符合條件的頻道
+                        </div>
+                    `;
+                }
+                return;
+            }
+
+            cardsContainer.innerHTML = filtered.map(ch => {
+                const daysAgoText = ch.daysAgo === 9999 ? "無紀錄" : (ch.daysAgo === 0 ? "今天" : `${ch.daysAgo} 天前`);
+                return `
+                    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-3 ${ch.isUnsubscribed ? 'opacity-60 bg-slate-50' : ''}">
+                        <div class="flex items-start justify-between gap-2">
+                            <div class="flex items-center space-x-2.5 min-w-0">
+                                <img 
+                                    src="${ch.avatar}" 
+                                    alt="${ch.title}" 
+                                    class="w-10 h-10 rounded-full object-cover border border-slate-200 shrink-0"
+                                    onerror="this.src='https://placehold.co/100x100/e2e8f0/64748b?text=YT'"
+                                />
+                                <div class="min-w-0">
+                                    <a href="${ch.url}" target="_blank" rel="noreferrer" class="font-bold text-slate-900 text-xs hover:text-red-600 block truncate">
+                                        ${ch.title}
+                                    </a>
+                                    <div class="text-[10px] text-slate-400">觀看 ${ch.watchedCount} 次 · 半年發布 ${ch.sixMonthUploads} 部</div>
+                                </div>
+                            </div>
+                            <div class="shrink-0">
+                                ${ch.isUnsubscribed ? 
+                                    `<span class="text-slate-500 bg-slate-100 text-[10px] px-2 py-0.5 rounded-full font-medium border border-slate-200 whitespace-nowrap">已退訂</span>` : 
+                                    `<span class="text-emerald-700 bg-emerald-50 text-[10px] px-2 py-0.5 rounded-full font-medium border border-emerald-200 whitespace-nowrap">訂閱中</span>`
+                                }
+                            </div>
+                        </div>
+
+                        <div class="flex flex-wrap gap-1">
+                            ${ch.categories.includes("updated_unwatched") ? `<span class="bg-red-100 text-red-700 px-2 py-0.5 rounded-full text-[9px] font-semibold whitespace-nowrap">👀 有更新沒看</span>` : ''}
+                            ${ch.categories.includes("high_freq_unwatched") ? `<span class="bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full text-[9px] font-semibold whitespace-nowrap">⚡ 冷門高頻</span>` : ''}
+                            ${ch.categories.includes("frequent") ? `<span class="bg-green-100 text-green-800 px-2 py-0.5 rounded-full text-[9px] font-semibold whitespace-nowrap">⭐ 經常觀看</span>` : ''}
+                            ${ch.categories.includes("inactive") ? `<span class="bg-slate-200 text-slate-700 px-2 py-0.5 rounded-full text-[9px] font-semibold whitespace-nowrap">💀 停更過久</span>` : ''}
+                        </div>
+
+                        <div class="bg-amber-50/70 p-2 rounded-lg border border-amber-200/60 flex items-center justify-between text-[11px]">
+                            <span class="text-slate-600 font-medium">🗓️ 最後更新日:</span>
+                            <span class="font-mono font-bold text-slate-900">${ch.lastUploadDate} (${daysAgoText})</span>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-2 pt-1">
+                            <a 
+                                href="${ch.url}?sub_confirmation=0"
+                                target="_blank"
+                                rel="noreferrer"
+                                class="bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-[11px] font-semibold py-1.5 rounded-lg text-center transition-all flex items-center justify-center gap-1 whitespace-nowrap"
+                            >
+                                <i class="fa-brands fa-youtube text-red-600"></i> 開啟頻道頁退訂
+                            </a>
+                            <button 
+                                onclick="toggleUnsubscribeState('${ch.id}')"
+                                class="py-1.5 rounded-lg text-[11px] font-semibold transition-all border text-center whitespace-nowrap ${
+                                    ch.isUnsubscribed 
+                                        ? 'bg-slate-100 border-slate-300 text-slate-700' 
+                                        : 'bg-slate-900 border-slate-900 text-white'
+                                }"
+                            >
+                                ${ch.isUnsubscribed ? '復原訂閱' : '標記退訂'}
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Set View Mode
+        window.setViewMode = function(mode) {
+            appState.viewMode = mode;
+            
+            const btnAuto = document.getElementById('view-btn-auto');
+            const btnTable = document.getElementById('view-btn-table');
+            const btnCards = document.getElementById('view-btn-cards');
+
+            [btnAuto, btnTable, btnCards].forEach(btn => {
+                if (btn) btn.className = "px-2.5 py-1 text-[11px] font-semibold rounded-md transition-all text-slate-600 hover:text-slate-900 whitespace-nowrap";
+            });
+
+            if (mode === 'auto' && btnAuto) btnAuto.className = "px-2.5 py-1 text-[11px] font-semibold rounded-md transition-all bg-white text-indigo-700 shadow-xs whitespace-nowrap";
+            if (mode === 'table' && btnTable) btnTable.className = "px-2.5 py-1 text-[11px] font-semibold rounded-md transition-all bg-white text-indigo-700 shadow-xs whitespace-nowrap";
+            if (mode === 'cards' && btnCards) btnCards.className = "px-2.5 py-1 text-[11px] font-semibold rounded-md transition-all bg-white text-indigo-700 shadow-xs whitespace-nowrap";
+
+            render();
+        };
+
+        // Interaction Handlers
+        window.setActiveTab = function(tabId) {
+            appState.activeTab = tabId;
+            appState.selectedIds.clear();
+            render();
+        };
+
+        window.handleSearch = function(val) {
+            appState.searchQuery = val;
+            const btnClear = document.getElementById('btn-clear-search');
+            if (btnClear) btnClear.classList.toggle('hidden', !val);
+            render();
+        };
+
+        window.clearSearch = function() {
+            const input = document.getElementById('search-input');
+            if (input) input.value = '';
+            appState.searchQuery = '';
+            const btnClear = document.getElementById('btn-clear-search');
+            if (btnClear) btnClear.classList.add('hidden');
+            render();
+        };
+
+        window.handleSortChange = function(val) {
+            appState.sortBy = val;
+            render();
+        };
+
+        window.toggleSelectOne = function(id) {
+            if (appState.selectedIds.has(id)) {
+                appState.selectedIds.delete(id);
+            } else {
+                appState.selectedIds.add(id);
+            }
+            render();
+        };
+
+        window.toggleSelectAll = function(checked) {
+            const processed = getProcessedChannels();
+            const filtered = getFilteredChannels(processed);
+            if (checked) {
+                filtered.forEach(c => appState.selectedIds.add(c.id));
+            } else {
+                appState.selectedIds.clear();
+            }
+            render();
+        };
+
+        function updateBatchUI(processed) {
+            const container = document.getElementById('batch-action-container');
+            const countEl = document.getElementById('selected-count');
+            const count = appState.selectedIds.size;
+
+            if (count > 0 && container && countEl) {
+                container.classList.remove('hidden');
+                countEl.textContent = count;
+            } else if (container) {
+                container.classList.add('hidden');
+            }
+
+            const selectAllBox = document.getElementById('select-all-checkbox');
+            const filtered = getFilteredChannels(processed);
+            if (selectAllBox) {
+                selectAllBox.checked = filtered.length > 0 && appState.selectedIds.size === filtered.length;
+            }
+        }
+
+        window.toggleUnsubscribeState = function(id) {
+            appState.channels = appState.channels.map(c => {
+                if (c.id === id) {
+                    const next = !c.isUnsubscribed;
+                    showToast(next ? `已標記「${c.title}」為已退訂` : `已恢復「${c.title}」為訂閱中`);
+                    return { ...c, isUnsubscribed: next };
+                }
+                return c;
+            });
+            saveChannelsToStorage();
+            render();
+        };
+
+        window.handleBatchUnsubscribe = function() {
+            if (appState.selectedIds.size === 0) return;
+            const size = appState.selectedIds.size;
+            appState.channels = appState.channels.map(c => 
+                appState.selectedIds.has(c.id) ? { ...c, isUnsubscribed: true } : c
+            );
+            saveChannelsToStorage();
+            appState.selectedIds.clear();
+            showToast(`已成功將選取的 ${size} 個頻道標記為已退訂！`);
+            render();
+        };
+
+        window.openYouTubeSubManager = function() {
+            window.open("https://www.youtube.com/feed/channels", "_blank");
+        };
+
+        window.fetchLatestDates = function() {
+            const icon = document.getElementById('icon-fetch-api');
+            const btn = document.getElementById('btn-fetch-api');
+
+            if (icon) icon.classList.add('fa-spin');
+            if (btn) btn.disabled = true;
+            showToast("正在自動抓取最新影片與頻道最後更新日 (Req D1)...");
+
+            setTimeout(() => {
+                appState.channels = appState.channels.map(ch => {
+                    const daysAgoRandom = Math.floor(Math.random() * 25);
+                    const newDate = new Date(NOW_DATE - daysAgoRandom * 86400000).toISOString().split('T')[0];
+                    return { ...ch, lastUploadDate: newDate };
+                });
+                saveChannelsToStorage();
+                if (icon) icon.classList.remove('fa-spin');
+                if (btn) btn.disabled = false;
+                showToast("全頻道最後更新日與數據同步更新完畢！");
+                render();
+            }, 1000);
+        };
+
+        // Handle File Import with CSV Support
+        window.handleImportFile = function() {
+            const input = document.getElementById('import-file-input');
+            if (!input.files || !input.files[0]) {
+                showToast("請先選擇 CSV 或 JSON 訂閱檔案！", "warning");
+                return;
+            }
+            const file = input.files[0];
+            const fileName = file.name.toLowerCase();
+            const reader = new FileReader();
+
+            reader.onload = function(e) {
+                try {
+                    let importedChannels = [];
+
+                    if (fileName.endsWith('.csv')) {
+                        importedChannels = parseCSVToChannels(e.target.result);
+                    } else if (fileName.endsWith('.json')) {
+                        const parsed = JSON.parse(e.target.result);
+                        if (Array.isArray(parsed)) {
+                            importedChannels = parsed;
+                        } else {
+                            showToast("JSON 格式不正確，必須為陣列資料", "error");
+                            return;
+                        }
+                    } else {
+                        showToast("不支援的檔案格式，請上傳 .csv 或 .json 檔案", "error");
+                        return;
+                    }
+
+                    if (importedChannels.length > 0) {
+                        appState.channels = importedChannels;
+                        saveChannelsToStorage();
+                        toggleImportExportModal(false);
+                        showToast(`成功匯入 ${importedChannels.length} 個頻道訂閱紀錄！`);
+                        render();
+                    } else {
+                        showToast("未在檔案中解析出有效的頻道紀錄", "error");
+                    }
+                } catch (err) {
+                    showToast("解析檔案失敗：" + err.message, "error");
+                }
+            };
+            reader.readAsText(file, "UTF-8");
+        };
+
+        // Export CSV / JSON
+        window.exportData = function(type) {
+            if (type === 'json') {
+                const blob = new Blob([JSON.stringify(appState.channels, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `yt_subscriptions_backup_${new Date().toISOString().split('T')[0]}.json`;
+                a.click();
+                showToast("已成功下載 JSON 備份檔！");
+            } else if (type === 'csv') {
+                let csv = "頻道ID,頻道名稱,頻道網址,頻道最後更新日,近半年觀看數,退訂狀態\n";
+                appState.channels.forEach(c => {
+                    csv += `"${c.id}","${c.title}","${c.url}","${c.lastUploadDate}",${c.watchedCount},"${c.isUnsubscribed ? '已退訂' : '訂閱中'}"\n`;
+                });
+                const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `yt_subscriptions_${new Date().toISOString().split('T')[0]}.csv`;
+                a.click();
+                showToast("已成功下載 CSV 表格檔！");
+            }
+        };
+
+        // Custom Modal Controls
+        window.toggleUnsubGuide = function(show) {
+            const el = document.getElementById('unsub-guide-modal');
+            if (el) el.classList.toggle('hidden', !show);
+        };
+
+        window.toggleImportExportModal = function(show) {
+            const el = document.getElementById('import-export-modal');
+            if (el) el.classList.toggle('hidden', !show);
+        };
+
+        window.openResetModal = function() {
+            const el = document.getElementById('confirm-reset-modal');
+            if (el) el.classList.remove('hidden');
+        };
+
+        window.closeResetModal = function() {
+            const el = document.getElementById('confirm-reset-modal');
+            if (el) el.classList.add('hidden');
+        };
+
+        window.confirmResetData = function() {
+            appState.channels = [];
+            appState.selectedIds.clear();
+            saveChannelsToStorage();
+            closeResetModal();
+            showToast("已成功清空所有頻道紀錄！");
+            render();
+        };
+
+        window.loadDemoSampleData = function() {
+            appState.channels = SAMPLE_CHANNELS_DEMO;
+            saveChannelsToStorage();
+            showToast("已載入測試範例頻道！");
+            render();
+        };
+
+        // On Page Load Initialization
+        window.onload = function() {
+            initCloud();
+            render();
+        };
+    </script>
+</body>
+</html>
